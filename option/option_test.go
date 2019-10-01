@@ -15,10 +15,12 @@
 package option
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.opencensus.io/plugin/ochttp"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/internal"
 	"google.golang.org/grpc"
@@ -41,6 +43,11 @@ func TestCopyScopes(t *testing.T) {
 
 func TestApply(t *testing.T) {
 	conn := &grpc.ClientConn{}
+	ocOpt := func(transport *ochttp.Transport) {
+		transport.FormatSpanName = func(req *http.Request) string {
+			return req.Method
+		}
+	}
 	opts := []ClientOption{
 		WithEndpoint("https://example.com:443"),
 		WithScopes("a"), // the next WithScopes should overwrite this one
@@ -54,6 +61,7 @@ func TestApply(t *testing.T) {
 		WithAudiences("https://example.com/"),
 		WithQuotaProject("user-project"),
 		WithRequestReason("Request Reason"),
+		WithOpenCensusTransportOption(ocOpt),
 	}
 	var got internal.DialSettings
 	for _, opt := range opts {
@@ -71,8 +79,9 @@ func TestApply(t *testing.T) {
 		Audiences:       []string{"https://example.com/"},
 		QuotaProject:    "user-project",
 		RequestReason:   "Request Reason",
+		OCTransportOpts: []func(*ochttp.Transport){ocOpt},
 	}
-	if !cmp.Equal(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{})) {
-		t.Errorf("\ngot  %#v\nwant %#v", got, want)
+	if !cmp.Equal(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{}), cmpopts.IgnoreTypes([]func(*ochttp.Transport){})) {
+		t.Errorf(cmp.Diff(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{})))
 	}
 }

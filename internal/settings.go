@@ -19,6 +19,7 @@ import (
 	"errors"
 	"net/http"
 
+	"go.opencensus.io/plugin/ochttp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/grpc"
@@ -37,6 +38,7 @@ type DialSettings struct {
 	APIKey          string
 	Audiences       []string
 	HTTPClient      *http.Client
+	OCTransportOpts []func(*ochttp.Transport)
 	GRPCDialOpts    []grpc.DialOption
 	GRPCConn        *grpc.ClientConn
 	NoAuth          bool

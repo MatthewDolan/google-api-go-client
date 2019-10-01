@@ -70,7 +70,7 @@ func newTransport(ctx context.Context, base http.RoundTripper, settings *interna
 		quotaProject:  settings.QuotaProject,
 		requestReason: settings.RequestReason,
 	}
-	trans = addOCTransport(trans)
+	trans = addOCTransport(trans, settings)
 	switch {
 	case settings.NoAuth:
 		// Do nothing.
@@ -153,9 +153,15 @@ func defaultBaseTransport(ctx context.Context) http.RoundTripper {
 	return http.DefaultTransport
 }
 
-func addOCTransport(trans http.RoundTripper) http.RoundTripper {
-	return &ochttp.Transport{
+func addOCTransport(trans http.RoundTripper, settings *internal.DialSettings) http.RoundTripper {
+	ocTrans := &ochttp.Transport{
 		Base:        trans,
 		Propagation: &propagation.HTTPFormat{},
 	}
+
+	for _, opt := range settings.OCTransportOpts {
+		opt(ocTrans)
+	}
+
+	return ocTrans
 }

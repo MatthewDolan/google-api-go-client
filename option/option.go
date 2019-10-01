@@ -18,6 +18,7 @@ package option
 import (
 	"net/http"
 
+	"go.opencensus.io/plugin/ochttp"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/internal"
 	"google.golang.org/grpc"
@@ -232,4 +233,24 @@ type withRequestReason string
 
 func (w withRequestReason) Apply(o *internal.DialSettings) {
 	o.RequestReason = string(w)
+}
+
+// A ClientOption is an option that allows overriding setting in the open census http transport
+type OpenCensusTransportOption func(*ochttp.Transport)
+
+// WithOpenCensusTransportOption returns a ClientOption that allows overriding specific
+// settings within the OC http transport.
+// An example reason would be to change the FormatSpanName field which derives how
+// a span name will be formatted from a request object.
+//
+// For more information please read:
+// https://godoc.org/go.opencensus.io/plugin/ochttp#Transport
+func WithOpenCensusTransportOption(option OpenCensusTransportOption) ClientOption {
+	return withOpenCensusTransportOption(option)
+}
+
+type withOpenCensusTransportOption OpenCensusTransportOption
+
+func (w withOpenCensusTransportOption) Apply(o *internal.DialSettings) {
+	o.OCTransportOpts = append(o.OCTransportOpts, w)
 }
